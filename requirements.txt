@@ -1,0 +1,5 @@
+requests==2.31.0
+parsel==1.9.1
+colorama==0.4.6
+selenium==4.21.0
+tldextract==5.1.2
