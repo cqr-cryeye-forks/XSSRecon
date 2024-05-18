@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
+import json
+import pathlib
+from typing import Final
 import requests
 from parsel import Selector
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
 from time import sleep
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.firefox.options import Options
-import threading
+from selenium.webdriver.chrome.options import Options
 import sys
 import argparse
 import tldextract
 from string import digits
-from os import system
+import subprocess
+
 
 class xssRecon:
-    def __init__(self,arguments):
+    def __init__(self, arguments):
         self.target = ""
         self.silent = False
         self.target_links = []
@@ -25,268 +27,176 @@ class xssRecon:
         self.wordlist = "xss_payloads.txt"
         self.delay = 0
         self.used_parameters = []
-
-
-    def logo(self):
-        print(Fore.GREEN+"""
-
-
- _     _ _______ _______  ______ _______ _______  _____  __   _
-  \___/  |______ |______ |_____/ |______ |       |     | | \  |
- _/   \_ ______| ______| |    \_ |______ |_____  |_____| |  \_|
-
-
-    XSSRecon - Automated refl. XSS Scanner
-    http://1337.rocks
-
-    Usage: python3 xssrecon.py -h
-           python3 xssrecon.py --target http://example.com/index.php?id=1
-           python3 xssrecon.py --target http://example.com --crawl
-
-"""+Style.RESET_ALL)
+        self.all_data = []
+        self.all_links = []
 
     def spawn_browser(self, visibility):
         self.options = Options()
-        if visibility == False:
-            self.options.headless = True
-        if visibility == True:
-            self.options.headless = False
-        self.profile = webdriver.FirefoxProfile()
-        self.profile.set_preference("permissions.default.image", 2)
-        self.profile.set_preference("permissions.default.stylesheet", 2);
-        self.driver = webdriver.Firefox(options=self.options,firefox_profile=self.profile)
+        self.options.headless = not visibility
+        self.driver = webdriver.Chrome(options=self.options)
 
     def crawl_and_test(self, target):
-        print(Fore.YELLOW+"[i] Starting crawler...")
-        self.response = requests.get(self.target)
+        print(Fore.YELLOW + "[i] Starting crawler...")
+        try:
+            self.response = requests.get(self.target)
+        except requests.RequestException as e:
+            print(Fore.RED + f"[!] Request error: {e}")
+            return
+
         self.selector = Selector(self.response.text)
         self.href_links = self.selector.xpath('//a/@href').getall()
-        if self.silent == False:
-            print(Fore.YELLOW+"[i] Looking for usable links (with parameters) in webpage html...")
-        if self.href_links == []:
-            print(Fore.YELLOW+"[i] No hrefs found")
+        if not self.silent:
+            print(Fore.YELLOW + "[i] Looking for usable links (with parameters) in webpage html...")
+
+        if not self.href_links:
+            print(Fore.YELLOW + "[i] No Hypertext Reference found")
+            self.all_data.append({"msg": "No Hypertext Reference found"})
             self.driver.quit()
-            sys.exit()
-        else:
-            if self.silent == False:
+            print(self.all_data)
+            return
 
-                # Follow hrefs
-                for href in self.href_links:
-                    #print("Current href: {}".format(href))
-                    if 'http' in href:
-                        response_follow = requests.get(href)
-                    else:
-                        if href.startswith("/"):
-                            response_follow = requests.get(self.target+href)
-                        else:
-                            response_follow = requests.get(self.target+"/"+href)
-                    selector_follow = Selector(response_follow.text)
-                    href_links_follow = selector_follow.xpath('//a/@href').getall()
+        for href in self.href_links:
+            response_follow = requests.get(href) if 'http' in href else requests.get(
+                f"{self.target}/{href.lstrip('/')}")
+            selector_follow = Selector(response_follow.text)
+            href_links_follow = selector_follow.xpath('//a/@href').getall()
 
-                    # Check mainpage hrefs for parameters
-                    if "=" in href:
-                        if href not in self.usable_links:
-                                if href.startswith("http") or href.startswith("https"):
-                                    if self.check_scope(self.target, href):
-                                        print(Fore.GREEN+"| %s" % href)
-                                        self.usable_links.append(href)
-                                    else:
-                                        print(f"{Fore.RED}| {href}{Style.RESET_ALL}")
-                                else:
-                                    if href.startswith("/"):
-                                        print(Fore.GREEN+"| %s" % href)
-                                        self.usable_links.append(href)
-                                    else:
-                                        href = "/"+str(href)
-                                        print(Fore.GREEN+"| %s" % href)
-                    # Check followed page hrefs for parameters
-                    for href in href_links_follow:
-                        if "=" in href:
-                            if href not in self.usable_links:
-                                if href.startswith("http") or href.startswith("https"):
-                                    if self.check_scope(self.target, href):
-                                        print(Fore.GREEN+"| %s" % href)
-                                        self.usable_links.append(href)
-                                    else:
-                                        print(f"{Fore.RED}| {href}{Style.RESET_ALL}")
-                                else:
-                                    if href.startswith("/"):
-                                        print(Fore.GREEN+"| %s" % href)
-                                        self.usable_links.append(href)
-                                    else:
-                                        href = "/"+str(href)
-                                        print(Fore.GREEN+"| %s" % href)
-                                        self.usable_links.append(href)
-                if self.usable_links == []:
-                    print("[-] Could not find any usable links in webpage")
-        # Scanner
-        print(Fore.YELLOW+"[i] Starting Scanner")
+            for link in [href] + href_links_follow:
+                if "=" in link and self.check_scope(self.target, link) and link not in self.usable_links:
+                    self.usable_links.append(link)
+                    print(Fore.GREEN + f"| {link}")
+
+        if not self.usable_links:
+            print("[-] Could not find any usable links in webpage")
+            self.all_data.append({"msg": "Could not find any usable links in webpage"})
+            print(self.all_data)
+
+        print(Fore.YELLOW + "[i] Starting Scanner")
         for link in self.usable_links:
-            if "=" in link:
-                if not "http" in link:
-                    full_link = f"{self.target}/{link}"
-                else:
-                    full_link = link
-                equal_counter = full_link.count("=")
-                last_param = full_link.split("=")[equal_counter]
-                for payload in self.payloads:
-                    exploit_url = full_link.replace(last_param,payload)
-                    self.single_xss_check(url=str(exploit_url), payload=payload, parameter=(full_link.split("=")[int(equal_counter)-1]))
+            full_link = f"{self.target}/{link}" if "http" not in link else link
+            equal_counter = full_link.count("=")
+            last_param = full_link.split("=")[equal_counter]
 
+            for payload in self.payloads:
+                exploit_url = full_link.replace(last_param, payload)
+                self.single_xss_check(exploit_url, payload, full_link.split("=")[equal_counter - 1])
 
-        if self.vulns == []:
-            print(Fore.YELLOW+"[-] No vulnerabilities found")
-            self.driver.quit()
-            sys.exit()
+        if not self.vulns:
+            print(Fore.YELLOW + "[-] No vulnerabilities found")
+            self.all_data.append({"msg": "No vulnerabilities found"})
+            print(self.all_data)
         else:
-            print(Fore.RED+"[+] Found the following exploits:")
+            print(Fore.RED + "[+] Found the following exploits:")
             for link in self.vulns:
+                self.all_links.append({"link_found": link})
                 print("|", link)
-            self.driver.quit()
-            sys.exit()
 
-    def parameter_compare(self, param1, param2):
-        param1 = param1.translate(None, digits)
-        param2 = param2.translate(None, digits)
+        self.driver.quit()
 
-        if param1 == param2:
-            return False
-        else:
-            return True
     def check_scope(self, target, url):
-        self.target_domain = tldextract.extract(self.target).registered_domain
-
-        url_domain = tldextract.extract(url)
-        if url_domain.count(".") == 2: # Subdomain check
-            print("Subdomain found")
-        url_domain = url_domain.registered_domain
-
-        if str(self.target_domain) == str(url_domain):
-            #print("[DEBUG] {} and {} are the same domain!".format(self.target_domain, url_domain))
-            return True
-        else:
-            #print("Found out of scope domain: {}:{} with URL: {}".format(self.target_domain, url_domain, url))
-            return False
+        target_domain = tldextract.extract(target).registered_domain
+        url_domain = tldextract.extract(url).registered_domain
+        return target_domain == url_domain
 
     def scan_one_url(self, url):
-        print(Fore.YELLOW+"[i] Starting single URL scanner...")
+        print(Fore.YELLOW + "[i] Starting single URL scanner...")
         equal_counter = url.count("=")
         for payload in self.payloads:
-            self.single_xss_check(str(url)+str(payload), payload=payload, parameter = url.split("=")[int(equal_counter)-1])
-        if self.vulns == []:
-            print(Fore.YELLOW+"[-] No vulnerabilities found")
-            self.driver.quit()
-            sys.exit()
+            self.single_xss_check(url + payload, payload, url.split("=")[equal_counter - 1])
+
+        if not self.vulns:
+            print(Fore.YELLOW + "[-] No vulnerabilities found")
+            self.all_links.append({"msg": "No vulnerabilities found"})
         else:
-            print(Fore.RED+"[+] Found the following exploits:")
+            print(Fore.RED + "[+] Found the following exploits:")
             for link in self.vulns:
+                self.all_links.append({"link_found": link})
                 print("|", link)
-            self.driver.quit()
-            sys.exit()
+
+        self.driver.quit()
 
     def single_xss_check(self, url, payload, parameter):
         self.counter += 1
-        if self.silent == False:
-            #sys.stdout.write(Fore.CYAN+"[%d] Testing: %s" % (self.counter, url))
-            sys.stdout.write(Fore.MAGENTA+"""
-Parameter: {}
-Payload: {}
-Counter: {}
-""".format(parameter+"=", payload, self.counter))
-        self.driver.get(str(url))
-        sleep(int(self.delay))
+        if not self.silent:
+            print(Fore.MAGENTA + f"Parameter: {parameter}=\nPayload: {payload}\nCounter: {self.counter}")
+
+        self.driver.get(url)
+        sleep(self.delay)
+
         try:
             self.driver.switch_to.alert.accept()
-            sys.stdout.write("\n")
-            sys.stdout.write(Fore.RED+"\n[+] Found reflected XSS at")
-            sys.stdout.write("\n| %s " % url)
-            for i in range(5):
-                sys.stdout.write("\n")
-            sys.stdout.write(Style.RESET_ALL+"\n")
-            vulns.append(exploit_url)
-        except:
-            sys.stdout.write("\033[F")
-            sys.stdout.write("\033[K")
-            sys.stdout.write("\033[F")
-            sys.stdout.write("\033[K")
-            sys.stdout.write("\033[F")
-            sys.stdout.write("\033[K")
-            sys.stdout.write("\033[F")
-            sys.stdout.write("\033[K")
-            #sys.stdout.flush()
-
+            print(Fore.RED + f"\n[+] Found reflected XSS at\n| {url}")
+            self.vulns.append(url)
+        except Exception:
+            pass
 
     def parse_payload_file(self):
-        if args.wordlist:
-            self.wordlist = args.wordlist
-        file = self.wordlist
-        with open(str(file)) as payloads:
-            for payload in payloads:
-                payload = payload.rstrip()
-                self.payloads.append(payload)
+        self.wordlist = args.wordlist if args.wordlist else self.wordlist
+        with open(self.wordlist) as payloads:
+            self.payloads = [payload.rstrip() for payload in payloads]
 
     def argument_parser(self):
-        self.logo()
         if args.setup:
-            print("[+] Creating /usr/bin/XSSRecon folder")
-            system('mkdir /usr/bin/XSSRecon')
-            system("mkdir /usr/bin/XSSRecon/bin")
-            print("[+] Cloning xssrecon.py into /usr/bin/XSSRecon/bin/XSSRecon")
-            system(
-                'wget https://raw.githubusercontent.com/Ak-wa/XSSRecon/master/xssrecon.py -O /usr/bin/XSSRecon/bin/xssrecon')
-            system("chmod +x /usr/bin/XSSRecon/bin/xssrecon")
-            print("[+] Setting up XSSRecon")
-            system("ln -s /usr/bin/XSSRecon/bin/xssrecon /usr/local/bin")
+            subprocess.run(['mkdir', '-p', '/usr/bin/XSSRecon'])
+            subprocess.run(['wget', 'https://raw.githubusercontent.com/Ak-wa/XSSRecon/master/xssrecon.py', '-O',
+                            '/usr/bin/XSSRecon/bin/xssrecon'])
+            subprocess.run(['chmod', '+x', '/usr/bin/XSSRecon/bin/xssrecon'])
+            subprocess.run(['ln', '-s', '/usr/bin/XSSRecon/bin/xssrecon', '/usr/local/bin'])
             print("[+] Done, you can now use XSSRecon from anywhere! Just type 'xssrecon'")
-            sys.exit()
+            exit()
         else:
-            if args.delay:
-                self.delay = args.delay
-            if args.silent:
-                self.silent = True
-            if args.wordlist:
-                self.wordlist = args.wordlist
-            if args.visible:
-                self.spawn_browser(visibility=True)
-            else:
-                self.spawn_browser(visibility=False)
+            MAIN_DIR = pathlib.Path(__file__).parent
+            OUTPUT_JSON = MAIN_DIR / args.output if args.output else exit("--output [OUTPUT] | example name: data.json")
+            self.delay = args.delay if args.delay else self.delay
+            self.silent = args.silent if args.silent else self.silent
+            self.wordlist = args.wordlist if args.wordlist else self.wordlist
+
+            visibility = args.visible if args.visible else False
+            self.spawn_browser(visibility)
+
             if args.target:
                 self.target = str(args.target)
                 if args.crawl:
-                    self.crawl_and_test(target=self.target)
+                    self.crawl_and_test(self.target)
+                elif "=" in self.target:
+                    self.scan_one_url(self.target)
                 else:
-                    if "=" in self.target:
-                        self.scan_one_url(self.target)
-                    else:
-                        print("[!] Please use --crawl or pass a full url with a parameter to test (e.g http://example.com/index.php?id=1)")
-                        self.driver.quit()
-                        sys.exit()
+                    print(
+                        "[!] Please use --crawl or pass a full url with a parameter to test (e.g http://example.com/index.php?id=1)")
+                    self.driver.quit()
+                    exit()
+
+            with open(OUTPUT_JSON, "w") as jf:
+                json.dump(self.all_data, jf, indent=2)
 
     def run(self):
         try:
             self.parse_payload_file()
             self.argument_parser()
+            print(json.dumps(self.all_data, indent=2))  # Вывод данных в терминал
         except KeyboardInterrupt:
-            print(Fore.GREEN+"\n[-] CTRL-C caught, exiting...")
+            print(Fore.GREEN + "\n[-] CTRL-C caught, exiting...")
             self.driver.quit()
-            sys.exit()
+            exit()
         except Exception as e:
             print(e)
             self.driver.quit()
-            sys.exit()
+            exit()
 
 
+# --target http://dima.com --crawl --output data.json
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", help="Scan a single URL for XSS")
-    parser.add_argument("--wordlist", help= "XSS wordlist to use")
-    parser.add_argument("--delay", help= "Delay to wait for webpage to load (each test)")
+    parser.add_argument("--wordlist", help="XSS wordlist to use")
+    parser.add_argument("--delay", help="Delay to wait for webpage to load (each test)")
     parser.add_argument("--crawl", help="Crawl page automatically & test everything for XSS", action="store_true")
     parser.add_argument("--silent", help="Silent mode (less output)", action="store_true")
     parser.add_argument("--visible", help="Shows browser while testing (may slow down)", action="store_true")
     parser.add_argument("--setup", help="Sets up XSSRecon with symlink to access it from anywhere", action="store_true")
+    parser.add_argument("--output", help="output to save in json format")
+
     args = parser.parse_args()
-    #print(args.echo)
 
     scanner = xssRecon(args)
     scanner.run()
