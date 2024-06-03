@@ -30,9 +30,9 @@ class xssRecon:
         self.all_data = []
         self.all_links = []
 
-    def spawn_browser(self, visibility):
+    def spawn_browser(self):
         self.options = Options()
-        self.options.headless = not visibility
+        self.options.headless = False
         self.driver = webdriver.Chrome(options=self.options)
 
     def crawl_and_test(self, target):
@@ -66,7 +66,7 @@ class xssRecon:
                     self.usable_links.append(link)
                     print(Fore.GREEN + f"| {link}")
 
-        if not self.usable_links:
+        if len(self.usable_links) == 0:
             print("[-] Could not find any usable links in webpage")
             self.all_data.append({"msg": "Could not find any usable links in webpage"})
             print(self.all_data)
@@ -81,14 +81,16 @@ class xssRecon:
                 exploit_url = full_link.replace(last_param, payload)
                 self.single_xss_check(exploit_url, payload, full_link.split("=")[equal_counter - 1])
 
-        if not self.vulns:
+        if len(self.vulns) == 0:
             print(Fore.YELLOW + "[-] No vulnerabilities found")
             self.all_data.append({"msg": "No vulnerabilities found"})
             print(self.all_data)
         else:
             print(Fore.RED + "[+] Found the following exploits:")
             for link in self.vulns:
-                self.all_links.append({"link_found": link})
+                self.all_links.append({"link_found": link,
+                                       "message": "Found the following exploits",
+                                       })
                 print("|", link)
 
         self.driver.quit()
@@ -104,13 +106,15 @@ class xssRecon:
         for payload in self.payloads:
             self.single_xss_check(url + payload, payload, url.split("=")[equal_counter - 1])
 
-        if not self.vulns:
+        if len(self.vulns) == 0:
             print(Fore.YELLOW + "[-] No vulnerabilities found")
-            self.all_links.append({"msg": "No vulnerabilities found"})
+            self.all_data.append({"msg": "No vulnerabilities found"})
         else:
             print(Fore.RED + "[+] Found the following exploits:")
             for link in self.vulns:
-                self.all_links.append({"link_found": link})
+                self.all_links.append({"link_found": link,
+                                       "message": "Found the following exploits",
+                                       })
                 print("|", link)
 
         self.driver.quit()
@@ -151,8 +155,7 @@ class xssRecon:
             self.silent = args.silent if args.silent else self.silent
             self.wordlist = args.wordlist if args.wordlist else self.wordlist
 
-            visibility = args.visible if args.visible else False
-            self.spawn_browser(visibility)
+            self.spawn_browser()
 
             if args.target:
                 self.target = str(args.target)
@@ -165,9 +168,12 @@ class xssRecon:
                         "[!] Please use --crawl or pass a full url with a parameter to test (e.g http://example.com/index.php?id=1)")
                     self.driver.quit()
                     exit()
-
+            data = {
+                "all_data": self.all_data,
+                "all_links": self.all_links,
+            }
             with open(OUTPUT_JSON, "w") as jf:
-                json.dump(self.all_data, jf, indent=2)
+                json.dump(data, jf, indent=2)
 
     def run(self):
         try:
@@ -192,7 +198,6 @@ if __name__ == '__main__':
     parser.add_argument("--delay", help="Delay to wait for webpage to load (each test)")
     parser.add_argument("--crawl", help="Crawl page automatically & test everything for XSS", action="store_true")
     parser.add_argument("--silent", help="Silent mode (less output)", action="store_true")
-    parser.add_argument("--visible", help="Shows browser while testing (may slow down)", action="store_true")
     parser.add_argument("--setup", help="Sets up XSSRecon with symlink to access it from anywhere", action="store_true")
     parser.add_argument("--output", help="output to save in json format")
 
