@@ -139,6 +139,8 @@ class xssRecon:
     def parse_payload_file(self):
         self.wordlist = args.wordlist if args.wordlist else self.wordlist
         xss_payloads_file = os.path.join(os.getcwd(), "xss_payloads.txt")
+        print(xss_payloads_file, "PATH TO XSS FILE")
+        print(os.listdir(), "LIST DIR")
         with open(xss_payloads_file, "r") as payloads:
             self.payloads = [payload.rstrip() for payload in payloads]
 
@@ -208,3 +210,8 @@ if __name__ == '__main__':
 
     scanner = xssRecon(args)
     scanner.run()
+
+# http://testphp.vulnweb.com
+# https://www.demo-typo3.org
+# https://example.com/
+# http://zero.webappsecurity.com
