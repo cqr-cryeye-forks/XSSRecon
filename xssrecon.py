@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import json
+import os.path
 import pathlib
 from typing import Final
+
 import requests
 from parsel import Selector
 from colorama import Fore, Style
@@ -136,7 +138,8 @@ class xssRecon:
 
     def parse_payload_file(self):
         self.wordlist = args.wordlist if args.wordlist else self.wordlist
-        with open(self.wordlist) as payloads:
+        xss_payloads_file = os.path.join(os.getcwd(), "xss_payloads.txt")
+        with open(xss_payloads_file, "r") as payloads:
             self.payloads = [payload.rstrip() for payload in payloads]
 
     def argument_parser(self):
