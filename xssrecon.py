@@ -202,9 +202,17 @@ def find_chromedriver():
         os.path.expanduser("~/.local/bin/chromedriver"),
         os.path.expanduser("~/bin/chromedriver")
     ]
+
     for path in possible_paths:
         if os.path.isfile(path) and os.access(path, os.X_OK):
+            print(f"Found chromedriver at: {path}")
             return path
+
+    # Выводим отладочную информацию о том, какие пути проверялись
+    print("Checked the following paths for chromedriver:")
+    for path in possible_paths:
+        print(f" - {path} (exists: {os.path.isfile(path)}, executable: {os.access(path, os.X_OK)})")
+
     raise FileNotFoundError("Chromedriver not found. Please install it and add it to the PATH.")
 
 
@@ -220,9 +228,7 @@ if __name__ == '__main__':
     parser.add_argument("--output", help="output to save in json format")
 
     args = parser.parse_args()
-    print("\n\n")
-    print(find_chromedriver())
-    print("\n\n")
+    find_chromedriver()
     scanner = xssRecon(args)
     scanner.run()
 
