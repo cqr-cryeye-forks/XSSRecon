@@ -138,7 +138,7 @@ class xssRecon:
 
     def parse_payload_file(self):
         self.wordlist = args.wordlist if args.wordlist else self.wordlist
-        xss_payloads_file = os.path.join(os.getcwd(), "xss_payloads.txt")
+        xss_payloads_file = os.path.join(os.getcwd(), "app/xss_payloads.txt")
         print(xss_payloads_file, "PATH TO XSS FILE")
         print(os.listdir(), "LIST DIR")
         with open(xss_payloads_file, "r") as payloads:
