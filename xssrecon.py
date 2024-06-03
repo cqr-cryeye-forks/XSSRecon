@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
+import argparse
 import json
 import os.path
 import pathlib
-from typing import Final
+import subprocess
+from time import sleep
 
 import requests
+import tldextract
+from colorama import Fore
 from parsel import Selector
-from colorama import Fore, Style
-from time import sleep
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-import sys
-import argparse
-import tldextract
-from string import digits
-import subprocess
+from selenium.webdriver.chrome.service import Service
 
 
 class xssRecon:
@@ -35,7 +33,9 @@ class xssRecon:
     def spawn_browser(self):
         self.options = Options()
         self.options.headless = False
-        self.driver = webdriver.Chrome(options=self.options)
+        chromedriver_path = "/usr/bin/chromedriver"  # Укажите путь к chromedriver в контейнере
+        service = Service(executable_path=chromedriver_path)
+        self.driver = webdriver.Chrome(service=service, options=self.options)
 
     def crawl_and_test(self, target):
         print(Fore.YELLOW + "[i] Starting crawler...")
