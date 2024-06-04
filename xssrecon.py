@@ -34,7 +34,7 @@ class XssRecon:
 
     def spawn_browser(self):
         self.options = Options()
-        self.options.add_argument('--headless')
+        self.options.add_argument("--headless")
 
         # self.profile = webdriver.FirefoxProfile()
         # self.profile.set_preference("permissions.default.image", 2)
@@ -52,7 +52,6 @@ class XssRecon:
             # profile=self.profile,
         )
 
-
     def crawl_and_test(self, target):
         print(Fore.YELLOW + "[i] Starting crawler...")
         try:
@@ -62,9 +61,12 @@ class XssRecon:
             return
 
         self.selector = Selector(self.response.text)
-        self.href_links = self.selector.xpath('//a/@href').getall()
+        self.href_links = self.selector.xpath("//a/@href").getall()
         if not self.silent:
-            print(Fore.YELLOW + "[i] Looking for usable links (with parameters) in webpage html...")
+            print(
+                Fore.YELLOW
+                + "[i] Looking for usable links (with parameters) in webpage html..."
+            )
 
         if not self.href_links:
             print(Fore.YELLOW + "[i] No Hypertext Reference found")
@@ -74,13 +76,20 @@ class XssRecon:
             return
 
         for href in self.href_links:
-            response_follow = requests.get(href) if 'http' in href else requests.get(
-                f"{self.target}/{href.lstrip('/')}")
+            response_follow = (
+                requests.get(href)
+                if "http" in href
+                else requests.get(f"{self.target}/{href.lstrip('/')}")
+            )
             selector_follow = Selector(response_follow.text)
-            href_links_follow = selector_follow.xpath('//a/@href').getall()
+            href_links_follow = selector_follow.xpath("//a/@href").getall()
 
             for link in [href] + href_links_follow:
-                if "=" in link and self.check_scope(self.target, link) and link not in self.usable_links:
+                if (
+                    "=" in link
+                    and self.check_scope(self.target, link)
+                    and link not in self.usable_links
+                ):
                     self.usable_links.append(link)
                     print(Fore.GREEN + f"| {link}")
 
@@ -97,7 +106,9 @@ class XssRecon:
 
             for payload in self.payloads:
                 exploit_url = full_link.replace(last_param, payload)
-                self.single_xss_check(exploit_url, payload, full_link.split("=")[equal_counter - 1])
+                self.single_xss_check(
+                    exploit_url, payload, full_link.split("=")[equal_counter - 1]
+                )
 
         if len(self.vulns) == 0:
             print(Fore.YELLOW + "[-] No vulnerabilities found")
@@ -106,9 +117,12 @@ class XssRecon:
         else:
             print(Fore.RED + "[+] Found the following exploits:")
             for link in self.vulns:
-                self.all_links.append({"link_found": link,
-                                       "message": "Found the following exploits",
-                                       })
+                self.all_links.append(
+                    {
+                        "link_found": link,
+                        "message": "Found the following exploits",
+                    }
+                )
                 print("|", link)
 
         self.driver.quit()
@@ -122,7 +136,9 @@ class XssRecon:
         print(Fore.YELLOW + "[i] Starting single URL scanner...")
         equal_counter = url.count("=")
         for payload in self.payloads:
-            self.single_xss_check(url + payload, payload, url.split("=")[equal_counter - 1])
+            self.single_xss_check(
+                url + payload, payload, url.split("=")[equal_counter - 1]
+            )
 
         if len(self.vulns) == 0:
             print(Fore.YELLOW + "[-] No vulnerabilities found")
@@ -130,9 +146,12 @@ class XssRecon:
         else:
             print(Fore.RED + "[+] Found the following exploits:")
             for link in self.vulns:
-                self.all_links.append({"link_found": link,
-                                       "message": "Found the following exploits",
-                                       })
+                self.all_links.append(
+                    {
+                        "link_found": link,
+                        "message": "Found the following exploits",
+                    }
+                )
                 print("|", link)
 
         self.driver.quit()
@@ -140,7 +159,10 @@ class XssRecon:
     def single_xss_check(self, url, payload, parameter):
         self.counter += 1
         if not self.silent:
-            print(Fore.MAGENTA + f"Parameter: {parameter}=\nPayload: {payload}\nCounter: {self.counter}")
+            print(
+                Fore.MAGENTA
+                + f"Parameter: {parameter}=\nPayload: {payload}\nCounter: {self.counter}"
+            )
 
         self.driver.get(url)
         sleep(self.delay)
@@ -160,16 +182,30 @@ class XssRecon:
 
     def argument_parser(self):
         if args.setup:
-            subprocess.run(['mkdir', '-p', '/usr/bin/XSSRecon'])
-            subprocess.run(['wget', 'https://raw.githubusercontent.com/Ak-wa/XSSRecon/master/xssrecon.py', '-O',
-                            '/usr/bin/XSSRecon/bin/xssrecon'])
-            subprocess.run(['chmod', '+x', '/usr/bin/XSSRecon/bin/xssrecon'])
-            subprocess.run(['ln', '-s', '/usr/bin/XSSRecon/bin/xssrecon', '/usr/local/bin'])
-            print("[+] Done, you can now use XSSRecon from anywhere! Just type 'xssrecon'")
+            subprocess.run(["mkdir", "-p", "/usr/bin/XSSRecon"])
+            subprocess.run(
+                [
+                    "wget",
+                    "https://raw.githubusercontent.com/Ak-wa/XSSRecon/master/xssrecon.py",
+                    "-O",
+                    "/usr/bin/XSSRecon/bin/xssrecon",
+                ]
+            )
+            subprocess.run(["chmod", "+x", "/usr/bin/XSSRecon/bin/xssrecon"])
+            subprocess.run(
+                ["ln", "-s", "/usr/bin/XSSRecon/bin/xssrecon", "/usr/local/bin"]
+            )
+            print(
+                "[+] Done, you can now use XSSRecon from anywhere! Just type 'xssrecon'"
+            )
             exit()
         else:
             MAIN_DIR = pathlib.Path(__file__).parent
-            OUTPUT_JSON = MAIN_DIR / args.output if args.output else exit("--output [OUTPUT] | example name: data.json")
+            OUTPUT_JSON = (
+                MAIN_DIR / args.output
+                if args.output
+                else exit("--output [OUTPUT] | example name: data.json")
+            )
             self.delay = args.delay if args.delay else self.delay
             self.silent = args.silent if args.silent else self.silent
             self.wordlist = args.wordlist if args.wordlist else self.wordlist
@@ -184,7 +220,8 @@ class XssRecon:
                     self.scan_one_url(self.target)
                 else:
                     print(
-                        "[!] Please use --crawl or pass a full url with a parameter to test (e.g http://example.com/index.php?id=1)")
+                        "[!] Please use --crawl or pass a full url with a parameter to test (e.g http://example.com/index.php?id=1)"
+                    )
                     self.driver.quit()
                     exit()
             data = {
@@ -215,15 +252,25 @@ class XssRecon:
 #             print(os.path.join(root, file))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", help="Scan a single URL for XSS")
 
     parser.add_argument("--wordlist", help="XSS wordlist to use")
     parser.add_argument("--delay", help="Delay to wait for webpage to load (each test)")
-    parser.add_argument("--crawl", help="Crawl page automatically & test everything for XSS", action="store_true")
-    parser.add_argument("--silent", help="Silent mode (less output)", action="store_true")
-    parser.add_argument("--setup", help="Sets up XSSRecon with symlink to access it from anywhere", action="store_true")
+    parser.add_argument(
+        "--crawl",
+        help="Crawl page automatically & test everything for XSS",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--silent", help="Silent mode (less output)", action="store_true"
+    )
+    parser.add_argument(
+        "--setup",
+        help="Sets up XSSRecon with symlink to access it from anywhere",
+        action="store_true",
+    )
     parser.add_argument("--output", help="output to save in json format")
 
     args = parser.parse_args()
