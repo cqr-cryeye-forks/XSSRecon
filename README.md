@@ -25,14 +25,14 @@
 `
 python3 xssrecon.py --target https://example.com/index.php?id=
 `
-![](xssrecon_singleurl.gif)   
+![](docs/xssrecon_singleurl.gif)   
 
 2. Crawler   
 
 `
 python3 xssrecon.py --target https://example.com --crawl
 `
-![](xssrecon3.gif)   
+![](docs/xssrecon3.gif)   
 
 ## FAQ   
 * It doesnt recognize geckodriver on my system!   
