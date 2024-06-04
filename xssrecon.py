@@ -47,6 +47,7 @@ class xssRecon:
             elif path.endswith("chromedriver"):
                 chromedriver_path = os.path.join(os.getcwd(), "chromedriver")
                 break
+        print(chromedriver_path)
         service = Service(executable_path=chromedriver_path)
         self.driver = webdriver.Chrome(service=service, options=self.options)
 
