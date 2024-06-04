@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import os.path
 import pathlib
 import subprocess
@@ -11,11 +12,12 @@ import tldextract
 from colorama import Fore
 from parsel import Selector
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
 
 
-class xssRecon:
+# --target http://dima.com --crawl --output data.json
+class XssRecon:
     def __init__(self, arguments):
         self.target = ""
         self.silent = False
@@ -33,13 +35,23 @@ class xssRecon:
     def spawn_browser(self):
         self.options = Options()
         self.options.add_argument('--headless')
-        chromedriver_path = os.path.join(os.getcwd(), "chromedriver")
-        if not os.path.exists(chromedriver_path):
-            raise FileNotFoundError(f"ChromeDriver не найден по пути {chromedriver_path}")
 
-        print(chromedriver_path)
-        service = Service(executable_path=chromedriver_path)
-        self.driver = webdriver.Chrome(service=service, options=self.options)
+        # self.profile = webdriver.FirefoxProfile()
+        # self.profile.set_preference("permissions.default.image", 2)
+        # self.profile.set_preference("permissions.default.stylesheet", 2)
+
+        webdriver_service = Service(
+            # executable_path="/usr/bin/geckodriver",
+            # executable_path="geckodriver",
+            executable_path="/usr/bin/geckodriver",
+        )
+
+        self.driver = webdriver.Firefox(
+            service=webdriver_service,
+            options=self.options,
+            # profile=self.profile,
+        )
+
 
     def crawl_and_test(self, target):
         print(Fore.YELLOW + "[i] Starting crawler...")
@@ -197,16 +209,16 @@ class xssRecon:
             exit()
 
 
-def list_all_files(start_path):
-    for root, dirs, files in os.walk(start_path):
-        for file in files:
-            print(os.path.join(root, file))
+# def list_all_files(start_path):
+#     for root, dirs, files in os.walk(start_path):
+#         for file in files:
+#             print(os.path.join(root, file))
 
 
-# --target http://dima.com --crawl --output data.json
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", help="Scan a single URL for XSS")
+
     parser.add_argument("--wordlist", help="XSS wordlist to use")
     parser.add_argument("--delay", help="Delay to wait for webpage to load (each test)")
     parser.add_argument("--crawl", help="Crawl page automatically & test everything for XSS", action="store_true")
@@ -216,10 +228,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    start_path = '/'
-    list_all_files(start_path)
-    print("\n\n")
-    scanner = xssRecon(args)
+    # start_path = '/'
+    # list_all_files(start_path)
+    # print("\n\n")
+
+    scanner = XssRecon(args)
     scanner.run()
 
 # http://testphp.vulnweb.com

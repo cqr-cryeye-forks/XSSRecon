@@ -1,0 +1,11 @@
+# Ignore all
+**
+
+# Exclude
+!app/
+
+!xssrecon.py
+!xss_payloads.txt
+
+!requirements.txt
+

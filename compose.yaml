@@ -1,0 +1,4 @@
+services:
+  app:
+    build: .
+    command: --target http://testphp.vulnweb.com --crawl --output data.json
