@@ -195,25 +195,10 @@ class xssRecon:
             exit()
 
 
-def find_chromedriver():
-    possible_paths = [
-        "/usr/bin/chromedriver",
-        "/usr/local/bin/chromedriver",
-        os.path.expanduser("~/.local/bin/chromedriver"),
-        os.path.expanduser("~/bin/chromedriver")
-    ]
-
-    for path in possible_paths:
-        if os.path.isfile(path) and os.access(path, os.X_OK):
-            print(f"Found chromedriver at: {path}")
-            return path
-
-    # Выводим отладочную информацию о том, какие пути проверялись
-    print("Checked the following paths for chromedriver:")
-    for path in possible_paths:
-        print(f" - {path} (exists: {os.path.isfile(path)}, executable: {os.access(path, os.X_OK)})")
-
-    raise FileNotFoundError("Chromedriver not found. Please install it and add it to the PATH.")
+def list_all_files(start_path):
+    for root, dirs, files in os.walk(start_path):
+        for file in files:
+            print(os.path.join(root, file))
 
 
 # --target http://dima.com --crawl --output data.json
@@ -228,7 +213,10 @@ if __name__ == '__main__':
     parser.add_argument("--output", help="output to save in json format")
 
     args = parser.parse_args()
-    find_chromedriver()
+    start_path = '/'
+    print("\n\n\n")
+    list_all_files(start_path)
+    print("\n\n\n")
     scanner = xssRecon(args)
     scanner.run()
 
