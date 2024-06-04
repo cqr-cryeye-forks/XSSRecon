@@ -34,6 +34,9 @@ class xssRecon:
         self.options = Options()
         self.options.add_argument('--headless')
         chromedriver_path = os.path.join(os.getcwd(), "chromedriver")
+        if not os.path.exists(chromedriver_path):
+            raise FileNotFoundError(f"ChromeDriver не найден по пути {chromedriver_path}")
+
         print(chromedriver_path)
         service = Service(executable_path=chromedriver_path)
         self.driver = webdriver.Chrome(service=service, options=self.options)
