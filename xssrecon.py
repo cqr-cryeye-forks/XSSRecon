@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import contextlib
 import json
 import os
 import os.path
@@ -53,11 +54,11 @@ class XssRecon:
         )
 
     def crawl_and_test(self, target):
-        print(Fore.YELLOW + "[i] Starting crawler...")
+        print(f"{Fore.YELLOW}[i] Starting crawler...")
         try:
             self.response = requests.get(self.target)
         except requests.RequestException as e:
-            print(Fore.RED + f"[!] Request error: {e}")
+            print(f"{Fore.RED}[!] Request error: {e}")
             return
 
         self.selector = Selector(self.response.text)
@@ -69,7 +70,7 @@ class XssRecon:
             )
 
         if not self.href_links:
-            print(Fore.YELLOW + "[i] No Hypertext Reference found")
+            print(f"{Fore.YELLOW}[i] No Hypertext Reference found")
             self.all_data.append({"msg": "No Hypertext Reference found"})
             self.driver.quit()
             print(self.all_data)
@@ -86,19 +87,19 @@ class XssRecon:
 
             for link in [href] + href_links_follow:
                 if (
-                    "=" in link
-                    and self.check_scope(self.target, link)
-                    and link not in self.usable_links
+                        "=" in link
+                        and self.check_scope(self.target, link)
+                        and link not in self.usable_links
                 ):
                     self.usable_links.append(link)
-                    print(Fore.GREEN + f"| {link}")
+                    print(f"{Fore.GREEN}| {link}")
 
         if len(self.usable_links) == 0:
             print("[-] Could not find any usable links in webpage")
             self.all_data.append({"msg": "Could not find any usable links in webpage"})
             print(self.all_data)
 
-        print(Fore.YELLOW + "[i] Starting Scanner")
+        print(f"{Fore.YELLOW}[i] Starting Scanner")
         for link in self.usable_links:
             full_link = f"{self.target}/{link}" if "http" not in link else link
             equal_counter = full_link.count("=")
@@ -111,11 +112,11 @@ class XssRecon:
                 )
 
         if len(self.vulns) == 0:
-            print(Fore.YELLOW + "[-] No vulnerabilities found")
+            print(f"{Fore.YELLOW}[-] No vulnerabilities found")
             self.all_data.append({"msg": "No vulnerabilities found"})
             print(self.all_data)
         else:
-            print(Fore.RED + "[+] Found the following exploits:")
+            print(f"{Fore.RED}[+] Found the following exploits:")
             for link in self.vulns:
                 self.all_links.append(
                     {
@@ -133,7 +134,7 @@ class XssRecon:
         return target_domain == url_domain
 
     def scan_one_url(self, url):
-        print(Fore.YELLOW + "[i] Starting single URL scanner...")
+        print(f"{Fore.YELLOW}[i] Starting single URL scanner...")
         equal_counter = url.count("=")
         for payload in self.payloads:
             self.single_xss_check(
@@ -141,10 +142,10 @@ class XssRecon:
             )
 
         if len(self.vulns) == 0:
-            print(Fore.YELLOW + "[-] No vulnerabilities found")
+            print(f"{Fore.YELLOW}[-] No vulnerabilities found")
             self.all_data.append({"msg": "No vulnerabilities found"})
         else:
-            print(Fore.RED + "[+] Found the following exploits:")
+            print(f"{Fore.RED}[+] Found the following exploits:")
             for link in self.vulns:
                 self.all_links.append(
                     {
@@ -167,15 +168,13 @@ class XssRecon:
         self.driver.get(url)
         sleep(self.delay)
 
-        try:
+        with contextlib.suppress(Exception):
             self.driver.switch_to.alert.accept()
-            print(Fore.RED + f"\n[+] Found reflected XSS at\n| {url}")
+            print(f"{Fore.RED}\n[+] Found reflected XSS at\n| {url}")
             self.vulns.append(url)
-        except Exception:
-            pass
 
     def parse_payload_file(self):
-        self.wordlist = args.wordlist if args.wordlist else self.wordlist
+        self.wordlist = args.wordlist or self.wordlist
         xss_payloads_file = os.path.join(os.getcwd(), "xss_payloads.txt")
         with open(xss_payloads_file, "r") as payloads:
             self.payloads = [payload.rstrip() for payload in payloads]
@@ -206,9 +205,9 @@ class XssRecon:
                 if args.output
                 else exit("--output [OUTPUT] | example name: data.json")
             )
-            self.delay = args.delay if args.delay else self.delay
-            self.silent = args.silent if args.silent else self.silent
-            self.wordlist = args.wordlist if args.wordlist else self.wordlist
+            self.delay = args.delay or self.delay
+            self.silent = args.silent or self.silent
+            self.wordlist = args.wordlist or self.wordlist
 
             self.spawn_browser()
 
