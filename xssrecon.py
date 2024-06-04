@@ -34,14 +34,21 @@ class xssRecon:
     #     self.options = Options()
     #     # self.options.headless = False
     #     self.options.add_argument('--headless')
-    #     # chromedriver_path = "/usr/bin/chromedriver"  # Укажите путь к chromedriver в контейнере
     #     # service = Service(executable_path=chromedriver_path)
     #     self.driver = webdriver.Chrome(service=service, options=self.options)
 
     def spawn_browser(self):
         self.options = Options()
         self.options.add_argument('--headless')
-        self.driver = webdriver.Chrome(options=self.options)
+        for path in os.listdir():
+            if path.endswith("app"):
+                chromedriver_path = os.path.join(os.getcwd(), path, "chromedriver")
+                break
+            elif path.endswith("chromedriver"):
+                chromedriver_path = os.path.join(os.getcwd(), "chromedriver")
+                break
+        service = Service(executable_path=chromedriver_path)
+        self.driver = webdriver.Chrome(service=service, options=self.options)
 
     def crawl_and_test(self, target):
         print(Fore.YELLOW + "[i] Starting crawler...")
@@ -152,9 +159,6 @@ class xssRecon:
             elif path.endswith("xss_payloads.txt"):
                 xss_payloads_file = os.path.join(os.getcwd(), "xss_payloads.txt")
                 break
-        print('\n')
-        print(xss_payloads_file)
-        print('\n')
         with open(xss_payloads_file, "r") as payloads:
             self.payloads = [payload.rstrip() for payload in payloads]
 
@@ -209,12 +213,6 @@ class xssRecon:
             exit()
 
 
-def list_all_files(start_path):
-    for root, dirs, files in os.walk(start_path):
-        for file in files:
-            print(os.path.join(root, file))
-
-
 # --target http://dima.com --crawl --output data.json
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -227,9 +225,6 @@ if __name__ == '__main__':
     parser.add_argument("--output", help="output to save in json format")
 
     args = parser.parse_args()
-    start_path = '/'
-    # list_all_files(start_path)
-    # print("\n\n\n")
     scanner = xssRecon(args)
     scanner.run()
 
