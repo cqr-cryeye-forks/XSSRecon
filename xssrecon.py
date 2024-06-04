@@ -162,7 +162,12 @@ class xssRecon:
             self.silent = args.silent if args.silent else self.silent
             self.wordlist = args.wordlist if args.wordlist else self.wordlist
 
-            self.spawn_browser()
+            try:
+                self.spawn_browser()
+            except FileNotFoundError as e:
+                print(e)
+            except Exception as e:
+                print(f"Произошла ошибка: {e}")
 
             if args.target:
                 self.target = str(args.target)
