@@ -30,23 +30,10 @@ class xssRecon:
         self.all_data = []
         self.all_links = []
 
-    # def spawn_browser(self):
-    #     self.options = Options()
-    #     # self.options.headless = False
-    #     self.options.add_argument('--headless')
-    #     # service = Service(executable_path=chromedriver_path)
-    #     self.driver = webdriver.Chrome(service=service, options=self.options)
-
     def spawn_browser(self):
         self.options = Options()
         self.options.add_argument('--headless')
-        for path in os.listdir():
-            if path.endswith("app"):
-                chromedriver_path = os.path.join(os.getcwd(), path, "chromedriver")
-                break
-            elif path.endswith("chromedriver"):
-                chromedriver_path = os.path.join(os.getcwd(), "chromedriver")
-                break
+        chromedriver_path = os.path.join(os.getcwd(), "chromedriver")
         print(chromedriver_path)
         service = Service(executable_path=chromedriver_path)
         self.driver = webdriver.Chrome(service=service, options=self.options)
@@ -152,14 +139,7 @@ class xssRecon:
 
     def parse_payload_file(self):
         self.wordlist = args.wordlist if args.wordlist else self.wordlist
-        for path in os.listdir():
-            print(path)
-            if path.endswith("app"):
-                xss_payloads_file = os.path.join(os.getcwd(), path, "xss_payloads.txt")
-                break
-            elif path.endswith("xss_payloads.txt"):
-                xss_payloads_file = os.path.join(os.getcwd(), "xss_payloads.txt")
-                break
+        xss_payloads_file = os.path.join(os.getcwd(), "xss_payloads.txt")
         with open(xss_payloads_file, "r") as payloads:
             self.payloads = [payload.rstrip() for payload in payloads]
 
@@ -214,6 +194,12 @@ class xssRecon:
             exit()
 
 
+def list_all_files(start_path):
+    for root, dirs, files in os.walk(start_path):
+        for file in files:
+            print(os.path.join(root, file))
+
+
 # --target http://dima.com --crawl --output data.json
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -226,6 +212,10 @@ if __name__ == '__main__':
     parser.add_argument("--output", help="output to save in json format")
 
     args = parser.parse_args()
+
+    start_path = '/'
+    list_all_files(start_path)
+    print("\n\n")
     scanner = xssRecon(args)
     scanner.run()
 
