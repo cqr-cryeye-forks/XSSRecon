@@ -44,7 +44,7 @@ class XssRecon:
         webdriver_service = Service(
             # executable_path="/usr/bin/geckodriver",
             # executable_path="geckodriver",
-            executable_path="/wd/app/geckodriver",
+            executable_path="/usr/bin/geckodriver",
         )
 
         self.driver = webdriver.Firefox(
