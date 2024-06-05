@@ -59,6 +59,9 @@ class XssRecon:
             self.response = requests.get(self.target)
         except requests.RequestException as e:
             print(f"{Fore.RED}[!] Request error: {e}")
+            self.all_data.append({
+                    "Request_error": "Unable to connect to the site. The server is not responding. Please try again later."
+                })
             return
 
         self.selector = Selector(self.response.text)
@@ -172,7 +175,13 @@ class XssRecon:
 
     def parse_payload_file(self):
         self.wordlist = args.wordlist or self.wordlist
-        xss_payloads_file = os.path.join(os.getcwd(), "xss_payloads.txt")
+        for path in os.listdir():
+            if path.endswith("app"):
+                xss_payloads_file = os.path.join(os.getcwd(), f"{path}/xss_payloads.txt")
+                break
+            elif path.endswith("xss_payloads.txt"):
+                xss_payloads_file = os.path.join(os.getcwd(), "xss_payloads.txt")
+                break
         with open(xss_payloads_file, "r") as payloads:
             self.payloads = [payload.rstrip() for payload in payloads]
 
@@ -212,6 +221,7 @@ class XssRecon:
                 self.target = str(args.target)
                 if args.crawl:
                     self.crawl_and_test(self.target)
+                    print(111)
                 elif "=" in self.target:
                     self.scan_one_url(self.target)
                 else:
@@ -220,15 +230,17 @@ class XssRecon:
                     )
                     self.driver.quit()
                     exit()
-            if self.all_data == [] and self.all_links == []:
-                data = {
+            data = {
+                "all_data": self.all_data,
+                "all_links": self.all_links,
+            }
+            for key, value in data.items():
+                if key == "Request_error":
+                    data = {
                     "Request_error": "Unable to connect to the site. The server is not responding. Please try again later."
                 }
-            else:
-                data = {
-                    "all_data": self.all_data,
-                    "all_links": self.all_links,
-                }
+                    break
+            print(args.target)
             print(data)
             with open(OUTPUT_JSON, "w") as jf:
                 json.dump(data, jf, indent=2)
@@ -246,12 +258,6 @@ class XssRecon:
             print(e)
             self.driver.quit()
             exit()
-
-
-def list_all_files(start_path):
-    for root, dirs, files in os.walk(start_path):
-        for file in files:
-            print(os.path.join(root, file))
 
 
 if __name__ == "__main__":
@@ -276,9 +282,6 @@ if __name__ == "__main__":
     parser.add_argument("--output", help="output to save in json format")
 
     args = parser.parse_args()
-
-    start_path = '/'
-    list_all_files(start_path)
 
     scanner = XssRecon(args)
     scanner.run()
