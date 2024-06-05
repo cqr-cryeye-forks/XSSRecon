@@ -73,7 +73,6 @@ class XssRecon:
             print(f"{Fore.YELLOW}[i] No Hypertext Reference found")
             self.all_data.append({"msg": "No Hypertext Reference found"})
             self.driver.quit()
-            print(self.all_data)
             return
 
         for href in self.href_links:
@@ -97,7 +96,6 @@ class XssRecon:
         if len(self.usable_links) == 0:
             print("[-] Could not find any usable links in webpage")
             self.all_data.append({"msg": "Could not find any usable links in webpage"})
-            print(self.all_data)
 
         print(f"{Fore.YELLOW}[i] Starting Scanner")
         for link in self.usable_links:
@@ -114,7 +112,6 @@ class XssRecon:
         if len(self.vulns) == 0:
             print(f"{Fore.YELLOW}[-] No vulnerabilities found")
             self.all_data.append({"msg": "No vulnerabilities found"})
-            print(self.all_data)
         else:
             print(f"{Fore.RED}[+] Found the following exploits:")
             for link in self.vulns:
@@ -223,10 +220,16 @@ class XssRecon:
                     )
                     self.driver.quit()
                     exit()
-            data = {
-                "all_data": self.all_data,
-                "all_links": self.all_links,
-            }
+            if self.all_data == [] and self.all_links == []:
+                data = {
+                    "Request_error": "Unable to connect to the site. The server is not responding. Please try again later."
+                }
+            else:
+                data = {
+                    "all_data": self.all_data,
+                    "all_links": self.all_links,
+                }
+            print(data)
             with open(OUTPUT_JSON, "w") as jf:
                 json.dump(data, jf, indent=2)
 
