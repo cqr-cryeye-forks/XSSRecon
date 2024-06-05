@@ -248,6 +248,12 @@ class XssRecon:
             exit()
 
 
+def list_all_files(start_path):
+    for root, dirs, files in os.walk(start_path):
+        for file in files:
+            print(os.path.join(root, file))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", help="Scan a single URL for XSS")
@@ -270,6 +276,9 @@ if __name__ == "__main__":
     parser.add_argument("--output", help="output to save in json format")
 
     args = parser.parse_args()
+
+    start_path = '/'
+    list_all_files(start_path)
 
     scanner = XssRecon(args)
     scanner.run()
