@@ -172,7 +172,7 @@ class XssRecon:
 
     def parse_payload_file(self):
         self.wordlist = args.wordlist or self.wordlist
-        xss_payloads_file = os.path.join(os.getcwd(), "xss_payloads.txt")
+        xss_payloads_file = os.path.join(os.getcwd(), "app/xss_payloads.txt")
         with open(xss_payloads_file, "r") as payloads:
             self.payloads = [payload.rstrip() for payload in payloads]
 
