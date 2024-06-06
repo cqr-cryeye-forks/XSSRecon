@@ -6,7 +6,7 @@ import os
 import os.path
 import pathlib
 import subprocess
-from time import sleep
+import time
 
 import requests
 import tldextract
@@ -166,7 +166,7 @@ class XssRecon:
             )
 
         self.driver.get(url)
-        sleep(self.delay)
+        time.sleep(self.delay)
 
         with contextlib.suppress(Exception):
             self.driver.switch_to.alert.accept()
@@ -221,15 +221,17 @@ class XssRecon:
                 self.target = str(args.target)
                 if args.crawl:
                     self.crawl_and_test(self.target)
-                    print(111)
                 elif "=" in self.target:
                     self.scan_one_url(self.target)
                 else:
                     print(
                         "[!] Please use --crawl or pass a full url with a parameter to test (e.g http://example.com/index.php?id=1)"
                     )
+                    self.all_data.append({
+                        "Error_input": "Use XSSReconCrawl or pass a full url with a parameter to test"
+                    })
                     self.driver.quit()
-                    exit()
+
             data = {
                 "all_data": self.all_data,
                 "all_links": self.all_links,
@@ -237,8 +239,13 @@ class XssRecon:
             for key, value in data.items():
                 if key == "Request_error":
                     data = {
-                    "Request_error": "Unable to connect to the site. The server is not responding. Please try again later."
-                }
+                        "Request_error": "Unable to connect to the site. The server is not responding. Please try again later."
+                    }
+                    break
+                elif key == "Error_input":
+                    data = {
+                        "Error_input": "Use XSSReconCrawl or pass a full url with a parameter to test"
+                    }
                     break
             print(args.target)
             print(data)
@@ -249,7 +256,6 @@ class XssRecon:
         try:
             self.parse_payload_file()
             self.argument_parser()
-            print(json.dumps(self.all_data, indent=2))  # Вывод данных в терминал
         except KeyboardInterrupt:
             print(Fore.GREEN + "\n[-] CTRL-C caught, exiting...")
             self.driver.quit()
