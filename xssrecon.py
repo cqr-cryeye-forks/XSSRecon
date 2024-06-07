@@ -60,8 +60,8 @@ class XssRecon:
         except requests.RequestException as e:
             print(f"{Fore.RED}[!] Request error: {e}")
             self.all_data.append({
-                    "Request_error": "Unable to connect to the site. The server is not responding. Please try again later."
-                })
+                "Request_error": "Unable to connect to the site. The server is not responding. Please try again later."
+            })
             return
 
         self.selector = Selector(self.response.text)
@@ -78,23 +78,27 @@ class XssRecon:
             self.driver.quit()
             return
 
-        for href in self.href_links:
-            response_follow = (
-                requests.get(href)
-                if "http" in href
-                else requests.get(f"{self.target}/{href.lstrip('/')}")
-            )
-            selector_follow = Selector(response_follow.text)
-            href_links_follow = selector_follow.xpath("//a/@href").getall()
+        for i, href in enumerate(self.href_links):
+            try:
+                response_follow = (
+                    requests.get(href)
+                    if "http" in href
+                    else requests.get(f"{self.target}/{href.lstrip('/')}")
+                )
+                selector_follow = Selector(response_follow.text)
+                href_links_follow = selector_follow.xpath("//a/@href").getall()
 
-            for link in [href] + href_links_follow:
-                if (
-                        "=" in link
-                        and self.check_scope(self.target, link)
-                        and link not in self.usable_links
-                ):
-                    self.usable_links.append(link)
-                    print(f"{Fore.GREEN}| {link}")
+                for link in [href] + href_links_follow:
+                    if (
+                            "=" in link
+                            and self.check_scope(self.target, link)
+                            and link not in self.usable_links
+                    ):
+                        self.usable_links.append(link)
+                        print(f"{Fore.GREEN}| {link}")
+
+            except Exception as e:
+                print('ERROR |', e)
 
         if len(self.usable_links) == 0:
             print("[-] Could not find any usable links in webpage")
@@ -102,16 +106,18 @@ class XssRecon:
 
         print(f"{Fore.YELLOW}[i] Starting Scanner")
         for link in self.usable_links:
-            full_link = f"{self.target}/{link}" if "http" not in link else link
-            equal_counter = full_link.count("=")
-            last_param = full_link.split("=")[equal_counter]
+            try:
+                full_link = f"{self.target}/{link}" if "http" not in link else link
+                equal_counter = full_link.count("=")
+                last_param = full_link.split("=")[equal_counter]
 
-            for payload in self.payloads:
-                exploit_url = full_link.replace(last_param, payload)
-                self.single_xss_check(
-                    exploit_url, payload, full_link.split("=")[equal_counter - 1]
-                )
-
+                for payload in self.payloads:
+                    exploit_url = full_link.replace(last_param, payload)
+                    self.single_xss_check(
+                        exploit_url, payload, full_link.split("=")[equal_counter - 1]
+                    )
+            except Exception as e:
+                print('ERROR_LVL4 |', e)
         if len(self.vulns) == 0:
             print(f"{Fore.YELLOW}[-] No vulnerabilities found")
             self.all_data.append({"msg": "No vulnerabilities found"})
@@ -154,7 +160,6 @@ class XssRecon:
                     }
                 )
                 print("|", link)
-
         self.driver.quit()
 
     def single_xss_check(self, url, payload, parameter):
@@ -167,7 +172,6 @@ class XssRecon:
 
         self.driver.get(url)
         time.sleep(self.delay)
-
         with contextlib.suppress(Exception):
             self.driver.switch_to.alert.accept()
             print(f"{Fore.RED}\n[+] Found reflected XSS at\n| {url}")
