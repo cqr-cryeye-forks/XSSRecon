@@ -1,4 +1,4 @@
 services:
   app:
     build: .
-    command: --target http://testphp.vulnweb.com --crawl --output data.json
+    command: --target http://185.233.118.120:666 --crawl --output data.json
