@@ -237,20 +237,15 @@ class XssRecon:
                     self.driver.quit()
 
             data = {
+                "Fragments_scanned": int(self.counter),
                 "all_data": self.all_data,
                 "all_links": self.all_links,
             }
             for key, value in data.items():
-                if key == "Request_error":
+                if "Error_input" in value:
                     data = {
-                        "Request_error": "Unable to connect to the site. The server is not responding. Please try again later."
+                        **value
                     }
-                    break
-                elif key == "Error_input":
-                    data = {
-                        "Error_input": "Use XSSReconCrawl or pass a full url with a parameter to test"
-                    }
-                    break
             print(args.target)
             print(data)
             with open(OUTPUT_JSON, "w") as jf:
