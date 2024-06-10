@@ -32,6 +32,7 @@ class XssRecon:
         self.used_parameters = []
         self.all_data = []
         self.all_links = []
+        self.data = {}
 
     def spawn_browser(self):
         self.options = Options()
@@ -231,25 +232,19 @@ class XssRecon:
                     print(
                         "[!] Please use --crawl or pass a full url with a parameter to test (e.g http://example.com/index.php?id=1)"
                     )
-                    self.all_data.append({
-                        "Error_input": "Use XSSReconCrawl or pass a full url with a parameter to test"
-                    })
-                    self.driver.quit()
 
-            data = {
-                "Fragments_scanned": int(self.counter),
-                "all_data": self.all_data,
-                "all_links": self.all_links,
-            }
-            for key, value in data.items():
-                if "Error_input" in value:
-                    data = {
-                        **value
-                    }
+                    self.data = {"Error_input": "Use XSSReconCrawl or pass a full url with a parameter to test"}
+                    self.driver.quit()
+            if self.data == {}:
+                self.data = {
+                    "Fragments_scanned": int(self.counter),
+                    "all_data": self.all_data,
+                    "all_links": self.all_links,
+                }
             print(args.target)
-            print(data)
+            print(self.data)
             with open(OUTPUT_JSON, "w") as jf:
-                json.dump(data, jf, indent=2)
+                json.dump(self.data, jf, indent=2)
 
     def run(self):
         try:
