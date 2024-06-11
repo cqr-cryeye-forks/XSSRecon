@@ -33,6 +33,7 @@ class XssRecon:
         self.all_data = []
         self.all_links = []
         self.data = {}
+        self.time_start = time_start
 
     def spawn_browser(self):
         self.options = Options()
@@ -80,6 +81,10 @@ class XssRecon:
             return
 
         for i, href in enumerate(self.href_links):
+            timeout = time.time() - self.time_start
+            if timeout >= time_left:
+                print(timeout)
+                break
             try:
                 response_follow = (
                     requests.get(href)
@@ -97,7 +102,6 @@ class XssRecon:
                     ):
                         self.usable_links.append(link)
                         print(f"{Fore.GREEN}| {link}")
-
             except Exception as e:
                 print('ERROR |', e)
 
@@ -107,6 +111,10 @@ class XssRecon:
 
         print(f"{Fore.YELLOW}[i] Starting Scanner")
         for link in self.usable_links:
+            timeout = time.time() - self.time_start
+            if timeout >= time_left:
+                print(timeout)
+                break
             try:
                 full_link = f"{self.target}/{link}" if "http" not in link else link
                 equal_counter = full_link.count("=")
@@ -282,6 +290,8 @@ if __name__ == "__main__":
     parser.add_argument("--output", help="output to save in json format")
 
     args = parser.parse_args()
+    time_left = 3600
+    time_start = time.time()
 
     scanner = XssRecon(args)
     scanner.run()
